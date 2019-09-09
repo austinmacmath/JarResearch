@@ -1,0 +1,246 @@
+---
+title: "Ceramic Sorting"
+author: "Austin Mac"
+date: "May 13, 2019"
+output:
+  pdf_document: default
+  html_document: default
+---
+## Goal
+The goal of this project is to produce visualizations of the distribution of rim diameters of different ceramics. In the process, trends or unusual patterns may manifest. 
+
+## Plots by Group
+The four plots below are plots of rim diameter (cm) graphed against vessel groups (1, 2, 3, 4) for each vessel type (Jars, Bowls, Plates, Vases respectively). Below each plot is a small table of descriptive statistics which includes the mean, median, and standard deviation for each group. The red horizontal line in each plot represents the median rim diameter of the total sample being plotted. 
+
+```{r, echo = FALSE, results = "hide"}
+library("reticulate", lib.loc="/Library/Frameworks/R.framework/Versions/3.5/Resources/library")
+use_python("/Users/austinmac/anaconda3/python")
+library("rmarkdown", lib.loc="/Library/Frameworks/R.framework/Versions/3.5/Resources/library")
+py_module_available("pandas")
+```
+
+
+```{python, echo = FALSE, results = "hide"}
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+import seaborn as sns
+
+#cleaning ceramics dataframe 
+ceramics = pd.read_csv("file:///Users/austinmac/Downloads/JarSorting/Copy%20of%20tblCeramComb.csv")
+
+#only ceramics with numeric values in "Form"
+ceramics = ceramics[ceramics["Form"] != "-"]
+ceramics = ceramics[ceramics["Form"] != "nan"]
+
+#drops entries in ceramics where "SITE" is nan
+ceramics = ceramics.dropna(subset = ["SITE"])
+ceramics["SITE"] = pd.to_numeric(ceramics["SITE"], errors = "coerce")
+
+#only ceramics in the Late Classic "Period"
+ceramics = ceramics[ceramics["Period"] == "LC"]
+ceramics["Form"] = pd.to_numeric(ceramics["Form"], errors = "coerce")
+
+ceramics["SITE"] = ceramics["SITE"].astype(int)
+
+#sorts ceramics into DataFrames based off of "Form"
+ceramics["Vessel"] = str("Other")
+ceramics["Vessel"][(ceramics["Group"] == "JG1") | (ceramics["Group"] == "JG2") | (ceramics["Group"] == "JG3") | (ceramics["Group"] == "JG4")] = "Jars"
+ceramics["Vessel"][(ceramics["Group"] == "BG1") | (ceramics["Group"] == "BG2") | (ceramics["Group"] == "BG3") | (ceramics["Group"] == "BG4")] = "Bowls"
+ceramics["Vessel"][(ceramics["Group"] == "PG1") | (ceramics["Group"] == "PG2") | (ceramics["Group"] == "PG3") | (ceramics["Group"] == "PG4")] = "Plates"
+ceramics["Vessel"][(ceramics["Group"] == "VG1") | (ceramics["Group"] == "VG2") | (ceramics["Group"] == "VG3")] = "Vases"
+```
+
+<br>
+
+### Jar Analysis
+
+From the plot, it is clear that JG3 has the greatest median rim diameter, followed by JG4, JG2, and JG1. 
+
+```{python, echo = FALSE, results = "hide"}
+plt.figure()
+jargroups = ceramics[(ceramics["Group"] == "JG1") | (ceramics["Group"] == "JG2") | (ceramics["Group"] == "JG3") | (ceramics["Group"] == "JG4")]
+jargroups["RimDiameter"] = pd.to_numeric(jargroups["RimDiameter"])
+sns.boxplot(data = jargroups, x = "Group", y = "RimDiameter", order = ["JG1", "JG2", "JG3", "JG4"], color = "#3785ca")
+plt.title("Rim Diameter vs. Jar Group")
+jarmedian = jargroups["RimDiameter"].median()
+plt.plot([-1, 4],[jarmedian, jarmedian], color = "red")
+```
+
+```{python, comment = "", echo = FALSE}
+JG1mean = jargroups["RimDiameter"][jargroups["Group"] == "JG1"].mean()
+JG1median = jargroups["RimDiameter"][jargroups["Group"] == "JG1"].median()
+JG1std = jargroups["RimDiameter"][jargroups["Group"] == "JG1"].std()
+
+JG2mean = jargroups["RimDiameter"][jargroups["Group"] == "JG2"].mean()
+JG2median = jargroups["RimDiameter"][jargroups["Group"] == "JG2"].median()
+JG2std = jargroups["RimDiameter"][jargroups["Group"] == "JG2"].std()
+
+JG3mean = jargroups["RimDiameter"][jargroups["Group"] == "JG3"].mean()
+JG3median = jargroups["RimDiameter"][jargroups["Group"] == "JG3"].median()
+JG3std = jargroups["RimDiameter"][jargroups["Group"] == "JG3"].std()
+
+JG4mean = jargroups["RimDiameter"][jargroups["Group"] == "JG4"].mean()
+JG4median = jargroups["RimDiameter"][jargroups["Group"] == "JG4"].median()
+JG4std = jargroups["RimDiameter"][jargroups["Group"] == "JG4"].std()
+
+jarstatarray = np.array([["JG1", round(JG1mean, 1), JG1median, round(JG1std, 1)], ["JG2", round(JG2mean, 1), JG2median, round(JG2std, 1)], ["JG3", round(JG3mean, 1), JG3median, round(JG3std, 1)], ["JG4", round(JG4mean, 1), JG4median, round(JG4std, 1)]])
+jarstatistics = pd.DataFrame(jarstatarray, columns = ["Group", "Mean", "Median", "St. Dev."])
+print(jarstatistics)
+```
+
+<br>
+
+### Bowl Analysis
+
+In order of greatest to least rim diameter, the groups are as follows: BG3, BG1, BG4, BG2. 
+
+```{python, echo = FALSE, results = "hide"}
+plt.figure()
+bowlgroups = ceramics[(ceramics["Group"] == "BG1") | (ceramics["Group"] == "BG2") | (ceramics["Group"] == "BG3") | (ceramics["Group"] == "BG4")]
+bowlgroups["RimDiameter"] = pd.to_numeric(bowlgroups["RimDiameter"])
+sns.boxplot(data = bowlgroups, x = "Group", y = "RimDiameter", order = ["BG1", "BG2", "BG3", "BG4"], color = "#ee854a")
+plt.title("Rim Diameter vs. Bowl Group")
+bowlmedian = bowlgroups["RimDiameter"].median()
+plt.plot([-1, 4],[bowlmedian, bowlmedian], color = "red")
+```
+
+```{python, comment = "", echo = FALSE}
+BG1mean = bowlgroups["RimDiameter"][bowlgroups["Group"] == "BG1"].mean()
+BG1median = bowlgroups["RimDiameter"][bowlgroups["Group"] == "BG1"].median()
+BG1std = bowlgroups["RimDiameter"][bowlgroups["Group"] == "BG1"].std()
+
+BG2mean = bowlgroups["RimDiameter"][bowlgroups["Group"] == "BG2"].mean()
+BG2median = bowlgroups["RimDiameter"][bowlgroups["Group"] == "BG2"].median()
+BG2std = bowlgroups["RimDiameter"][bowlgroups["Group"] == "BG2"].std()
+
+BG3mean = bowlgroups["RimDiameter"][bowlgroups["Group"] == "BG3"].mean()
+BG3median = bowlgroups["RimDiameter"][bowlgroups["Group"] == "BG3"].median()
+BG3std = bowlgroups["RimDiameter"][bowlgroups["Group"] == "BG3"].std()
+
+BG4mean = bowlgroups["RimDiameter"][bowlgroups["Group"] == "BG4"].mean()
+BG4median = bowlgroups["RimDiameter"][bowlgroups["Group"] == "BG4"].median()
+BG4std = bowlgroups["RimDiameter"][bowlgroups["Group"] == "BG4"].std()
+
+bowlstatarray = np.array([["BG1", round(BG1mean, 1), BG1median, round(BG1std, 1)], ["BG2", round(BG2mean, 1), BG2median, round(BG2std, 1)], ["BG3", round(BG3mean, 1), BG3median, round(BG3std, 1)], ["BG4", round(BG4mean, 1), BG4median, round(BG4std, 1)]])
+bowlstatistics = pd.DataFrame(bowlstatarray, columns = ["Group", "Mean", "Median", "St. Dev."])
+print(bowlstatistics)
+```
+
+<br>
+
+### Plate Analysis
+
+The distribution of rim diameters of this plot is quite interesting because all of the plate groups have identical median rim diameters. This could suggest that plates have more consistent sizes when compared to other ceramics. Furthermore, it could mean that plates were generic and there was no need for any specialized kind of plate. 
+
+```{python, echo = FALSE, results = "hide"}
+plt.figure()
+plategroups = ceramics[(ceramics["Group"] == "PG1") | (ceramics["Group"] == "PG2") | (ceramics["Group"] == "PG3") | (ceramics["Group"] == "PG4")]
+plategroups["RimDiameter"] = pd.to_numeric(plategroups["RimDiameter"])
+sns.boxplot(data = plategroups, x = "Group", y = "RimDiameter", order = ["PG1", "PG2", "PG3", "PG4"], color = "#6acc64")
+plt.title("Rim Diameter vs. Plate Group")
+platemedian = plategroups["RimDiameter"].median()
+plt.plot([-1, 4],[platemedian, platemedian], color = "red")
+```
+
+```{python, echo = FALSE, comment = ""}
+PG1mean = plategroups["RimDiameter"][plategroups["Group"] == "PG1"].mean()
+PG1median = plategroups["RimDiameter"][plategroups["Group"] == "PG1"].median()
+PG1std = plategroups["RimDiameter"][plategroups["Group"] == "PG1"].std()
+
+PG2mean = plategroups["RimDiameter"][plategroups["Group"] == "PG2"].mean()
+PG2median = plategroups["RimDiameter"][plategroups["Group"] == "PG2"].median()
+PG2std = plategroups["RimDiameter"][plategroups["Group"] == "PG2"].std()
+
+PG3mean = plategroups["RimDiameter"][plategroups["Group"] == "PG3"].mean()
+PG3median = plategroups["RimDiameter"][plategroups["Group"] == "PG3"].median()
+PG3std = plategroups["RimDiameter"][plategroups["Group"] == "PG3"].std()
+
+PG4mean = plategroups["RimDiameter"][plategroups["Group"] == "PG4"].mean()
+PG4median = plategroups["RimDiameter"][plategroups["Group"] == "PG4"].median()
+PG4std = plategroups["RimDiameter"][plategroups["Group"] == "PG4"].std()
+
+platestatarray = np.array([["PG1", round(PG1mean, 1), PG1median, round(PG1std, 1)], ["PG2", round(PG2mean, 1), PG2median, round(PG2std, 1)], ["PG3", round(PG3mean, 1), PG3median, round(PG3std, 1)], ["PG4", round(PG4mean, 1), PG4median, round(PG4std, 1)]])
+platestatistics = pd.DataFrame(platestatarray, columns = ["Group", "Mean", "Median", "St. Dev."])
+print(platestatistics)
+```
+
+<br>
+
+### Vase Analysis
+
+VG2 has the greatest median rim diameter followed by VG1 then VG3. The median rim diameter of VG3 is much lower than the rest of the vases, suggesting that the vases in VG3 could've been used for some specialized purpose. 
+
+```{python, echo = FALSE, results = "hide"}
+plt.figure()
+vasegroups = ceramics[(ceramics["Group"] == "VG1") | (ceramics["Group"] == "VG2") | (ceramics["Group"] == "VG3")]
+vasegroups["RimDiameter"] = pd.to_numeric(vasegroups["RimDiameter"])
+sns.boxplot(data = vasegroups, x = "Group", y = "RimDiameter", order = ["VG1", "VG2", "VG3"], color = "#d65f5f")
+plt.title("Rim Diameter vs. Vase Group")
+vasemedian = vasegroups["RimDiameter"].median()
+plt.plot([-1, 4],[vasemedian, vasemedian], color = "red")
+```
+
+```{python, echo = FALSE, comment = ""}
+VG1mean = vasegroups["RimDiameter"][vasegroups["Group"] == "VG1"].mean()
+VG1median = vasegroups["RimDiameter"][vasegroups["Group"] == "VG1"].median()
+VG1std = vasegroups["RimDiameter"][vasegroups["Group"] == "VG1"].std()
+
+VG2mean = vasegroups["RimDiameter"][vasegroups["Group"] == "VG2"].mean()
+VG2median = vasegroups["RimDiameter"][vasegroups["Group"] == "VG2"].median()
+VG2std = vasegroups["RimDiameter"][vasegroups["Group"] == "VG2"].std()
+
+VG3mean = vasegroups["RimDiameter"][vasegroups["Group"] == "VG3"].mean()
+VG3median = vasegroups["RimDiameter"][vasegroups["Group"] == "VG3"].median()
+VG3std = vasegroups["RimDiameter"][vasegroups["Group"] == "VG3"].std()
+
+VG4mean = vasegroups["RimDiameter"][vasegroups["Group"] == "VG4"].mean()
+VG4median = vasegroups["RimDiameter"][vasegroups["Group"] == "VG4"].median()
+VG4std = vasegroups["RimDiameter"][vasegroups["Group"] == "VG4"].std()
+
+vasestatarray = np.array([["VG1", round(VG1mean, 1), VG1median, round(VG1std, 1)], ["VG2", round(VG2mean, 1), VG2median, round(VG2std, 1)], ["VG3", round(VG3mean, 1), VG3median, round(VG3std, 1)]])
+vasestatistics = pd.DataFrame(vasestatarray, columns = ["Group", "Mean", "Median", "St. Dev."])
+print(vasestatistics)
+```
+
+<br>
+
+## Plots by Vessel Type
+
+Below is a plot of the distribution of rim diameter against the totality of each vessel type (Jars, Bowls, Plates, Vases). From observation, it is evident that plates have the greatest median rim diameter, followed by bowls, jars, then vases.
+
+```{python, echo = FALSE, results = "hide"}
+ceramics["RimDiameter"] = pd.to_numeric(ceramics["RimDiameter"])
+plt.figure()
+sns.boxplot(data = ceramics, x = "Vessel", y = "RimDiameter", order = ["Jars", "Bowls", "Plates", "Vases"])
+plt.title("Rim Diameter vs. Vessel Type")
+```
+
+```{python, echo = FALSE, comment = ""}
+Jarsmean = ceramics["RimDiameter"][ceramics["Vessel"] == "Jars"].mean()
+Jarsmedian = ceramics["RimDiameter"][ceramics["Vessel"] == "Jars"].median()
+Jarsstd = ceramics["RimDiameter"][ceramics["Vessel"] == "Jars"].std()
+
+Bowlsmean = ceramics["RimDiameter"][ceramics["Vessel"] == "Bowls"].mean()
+Bowlsmedian = ceramics["RimDiameter"][ceramics["Vessel"] == "Bowls"].median()
+Bowlsstd = ceramics["RimDiameter"][ceramics["Vessel"] == "Bowls"].std()
+
+Platesmean = ceramics["RimDiameter"][ceramics["Vessel"] == "Plates"].mean()
+Platesmedian = ceramics["RimDiameter"][ceramics["Vessel"] == "Plates"].median()
+Platesstd = ceramics["RimDiameter"][ceramics["Vessel"] == "Plates"].std()
+
+Vasesmean = ceramics["RimDiameter"][ceramics["Vessel"] == "Vases"].mean()
+Vasesmedian = ceramics["RimDiameter"][ceramics["Vessel"] == "Vases"].median()
+Vasesstd = ceramics["RimDiameter"][ceramics["Vessel"] == "Vases"].std()
+
+statarray = np.array([["Jars", round(Jarsmean, 1), Jarsmedian, round(Jarsstd, 1)], ["Bowls", round(Bowlsmean, 1), Bowlsmedian, round(Bowlsstd, 1)], ["Plates", round(Platesmean, 1), Platesmedian, round(Platesstd, 1)], ["Vases", round(Vasesmean, 1), Vasesmedian, round(Platesstd, 1)]])
+statistics = pd.DataFrame(statarray, columns = ["Vessel", "Mean", "Median", "St. Dev."])
+print(statistics)
+```
+
+
+## Limitations
+The ceramics under observation are exclusively from the Late Classic period. Additionally, we are only able to analyze ceramics which have been grouped (e.g.: BG1, BG2,...). Although the dataset contained over 23,000 entries, we were unable to analyze the entirety of it because not every tuple contained useful/valuable information. Furthermore, 8 outliers were removed from the dataset. 
+
+## Further Research
+Since this was a visualization project, much of the plot data depended upon whether or not each ceramic was categorized into a group. Many of the ceramics were not, which caused them to be excluded from this analysis. With more time, an effort could be made to group every ceramic into a group 1 - 4. 

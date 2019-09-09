@@ -1,0 +1,107 @@
+---
+title: "Jar Sorting"
+author: "Austin Mac"
+date: "May 3, 2019"
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+---
+
+```{r, echo = FALSE, results = "hide"}
+library("reticulate", lib.loc="/Library/Frameworks/R.framework/Versions/3.5/Resources/library")
+use_python("/Users/austinmac/anaconda3/python")
+library("rmarkdown", lib.loc="/Library/Frameworks/R.framework/Versions/3.5/Resources/library")
+py_module_available("pandas")
+```
+
+## Background
+The El Pilar region of Belize contains ceramics which can provide valuable insight on the lifestyles of the people who inhabited the area. Typically ceramics have not been utilized to their fulllest extent to illuminate the culture of the ancient Maya. Ceramics such as vases, plates, jars, and bowls; and the areas in which they were found can be very elucidating in this respect. 
+
+## Goal
+The goal of this project is to sort jar data retrieved from El Pilar into narrow or wide groups based off of two variables: rim diameter (cm), and jar group (JG1, JG2, JG3, JG4). We were told that the average diameter of narrow and wide jars is 19cm and 26cm respectively (see "18 Horn and Ford ceramics.pdf"), and jars in JG1 (Jar Group 1) are mainly narrow while the jars in JG2 - JG4 are mainly wide. Given this information, the work lies in finding a quantitative yet qualitative way to categorize the jars. We would like to find a number, or perhaps an interval, in which jars are classified as narrow or wide, while fulfilling two criteria. First, our jar categorizations should preserve the homogeneity of each jar group as much as possible. Second, we should minimize the deviation between new mean rim diameters and the given mean rim diameters. 
+
+## Process
+Given a dataset describing ceramics from El Pilar, I added a column "JarGroups" to the "allData" dataframe which consists only of jars categorized into specific jar groups. 
+
+
+```{python, results = "hide"}
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+import numpy as np
+
+allData = pd.read_csv("/Users/austinmac/Downloads/JarSorting/Copy of tblCeramComb.csv")
+rimDiameter = allData["RimDiameter"]
+group = allData["Group"]
+
+allData["JarGroups"] = str()
+allData["JarGroups"][allData["Group"] == "JG1"] = "JG1"
+allData["JarGroups"][allData["Group"] == "JG2"] = "JG2"
+allData["JarGroups"][allData["Group"] == "JG3"] = "JG3"
+allData["JarGroups"][allData["Group"] == "JG4"] = "JG4"
+allData["JarGroups"][allData["Group"] == "nan"] = "Other"
+```
+
+After importing the data and creating a column consisting solely of jars under observation, I created side by side boxplots for each of the four jar groups to analyze the distribution of rim diameters against jar groups. 
+
+```{python, echo = FALSE}
+sns.boxplot(data = allData, x = "JarGroups", y ="RimDiameter", color = "white", order = ["JG1", "JG2", "JG3", "JG4"])
+```
+
+From observation, the median rim diameter of JG2, JG3, and JG4 is centered roughly around 25cm, and the median rim diameter of JG1 is centered around 19cm. With this information, I extrapolated that jars coming from JG2, JG3, and JG4 were more likely to be wider than jars from JG1. Thus, I concluded that jars with rim diameters greater than or equal to 25cm should be considered wide, regardless of jar group, and jars with rim diameters less than or equal to 19cm should be considered narrow, regardless of jar group. 
+
+```{python}
+upperbound = 25
+lowerbound = 19
+allData["Width"] = str()
+allData["Width"][allData["RimDiameter"] <= lowerbound] = "narrow"
+allData["Width"][allData["RimDiameter"] >= upperbound] = "wide"
+```
+
+```{python, echo = FALSE, results = "hide"}
+sns.catplot(data = allData, x = "JarGroups", y ="RimDiameter", hue = "Width", palette = sns.color_palette("coolwarm", 3), order = ["JG1", "JG2", "JG3", "JG4"])
+sns.boxplot(data = allData, x = "JarGroups", y ="RimDiameter", color = "white", order = ["JG1", "JG2", "JG3", "JG4"])
+```
+
+Now we only have to deal with jars with rim diameters between the interval 19cm and 25cm, which is the gray area in the above graph. In order to preserve the integrity of each jar group as much as possible (i.e. the majority of jars in JG1 are narrow and the majority of jars in JG2 - JG4 are wide), jars with rim diameters between this interval were sorted according to jar group. Jars in JG1 were sorted into the narrow category, while jars in JG2, JG3, and JG4 were sorted into the wide category. 
+
+```{python}
+allData["Width"][(lowerbound < allData["RimDiameter"]) & (upperbound > allData["RimDiameter"]) & (allData["Group"] == "JG1")] = "narrow"
+allData["Width"][(lowerbound < allData["RimDiameter"]) & (upperbound > allData["RimDiameter"]) & (allData["Group"] == "JG2")] = "wide"
+allData["Width"][(lowerbound < allData["RimDiameter"]) & (upperbound > allData["RimDiameter"]) & (allData["Group"] == "JG3")] = "wide"
+allData["Width"][(lowerbound < allData["RimDiameter"]) & (upperbound > allData["RimDiameter"]) & (allData["Group"] == "JG4")] = "wide"
+```
+
+We can view the overall distribution of wide and narrow jars according to rim diameter and jar group in the graph below. 
+
+```{python, echo = FALSE, results = "hide"}
+sns.catplot(data = allData, x = "JarGroups", y ="RimDiameter", hue = "Width", palette = sns.color_palette("coolwarm", 3), order = ["JG1", "JG2", "JG3", "JG4"])
+sns.boxplot(data = allData, x = "JarGroups", y ="RimDiameter", color = "white", order = ["JG1", "JG2", "JG3", "JG4"])
+```
+From the graph, it is evident that approximately 75% of the jars in JG1 are narrow and 75% of the jars in JG2 - JG4 are wide due to the way they were sorted. In this respect, we have achieved the first part of our objective: preserving the homogeneity of each jar group.
+
+Taking a look at some basic statistics of the sub-groups of jars, we can see the following: 
+
+```{python, echo = FALSE, results = "hide", comment = ""}
+narrows = allData[allData.Width == "narrow"]
+wides = allData[allData.Width == "wide"]
+
+narrowmean = narrows["RimDiameter"].mean()
+narrowmedian = narrows["RimDiameter"].median()
+narrowstd = narrows["RimDiameter"].std()
+
+widemean = wides["RimDiameter"].mean()
+widemedian = wides["RimDiameter"].median()
+widestd =wides["RimDiameter"].std()
+
+statistics = pd.DataFrame(np.array([["narrow", round(narrowmean, 1), narrowmedian, round(narrowstd, 1)], ["wide", round(widemean, 1), widemedian, round(widestd, 1)]]), columns = ["Width", "Mean", "Median", "St. Dev."])
+print(statistics)
+```
+We can see that the mean rim diameter of our newly categorized narrow jars is 15.3cm and the mean rim diameter of our newly categorized wide jars is 33.0cm. When comparing our new mean rim diameters to the intial given mean rim diameters, we can see that our new means differ from the given means by approximately 1 standard deviation. This indicates that our jar categorizations were not too far off of the original parameters. In this respect, we have achieved the second part of our objective, minimizing the deviations between rim diameters. 
+
+## Results
+First, jars were sorted into either a narrow or wide category based exclusively off of rim diameter. In general, jars with rim diameters greater than the median of wider jar (25cm) groups were considered wide. Jars with rim diameters less than the median of narrow jar groups (19cm) were considered narrow. Thus, we quantitatively assigned jars to categories. In order to account for jars with rim diameters which fell between this interval, I assigned jars to the wide or narrow category based off of jar group number (1, 2, 3, or 4), thus qualitatively categorizing the jars. From the categorization implemented, the new mean rim diameter of narrow and wide jars differed from the given mean rim diameter by about 1 standard deviation. This categorization also resulted in 75% of JG1 categorized as narrow, and 75% of JG2, JG3, and JG4 categorized as wide. 
+
+## Further Research
+While the results of this project were obtained to a satisfactory degree, there is still more that could be done. The difference between given and new rim diameters could be decreased to well under one standard deviation. Additionally, jar groups could be made even more homogenous. For example, JG1 could be made up of 80% or 90% narrow jars, instead of our resulting 75%. Decision trees, random forests, and linear regression could be utilized to take other variables into account and better organize jars. 

@@ -1,0 +1,77 @@
+---
+title: "Jar Sorting: Late Classic"
+author: "Austin Mac"
+date: "May 10, 2019"
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+---
+
+```{r, echo = FALSE, results = "hide"}
+library("reticulate", lib.loc="/Library/Frameworks/R.framework/Versions/3.5/Resources/library")
+use_python("/Users/austinmac/anaconda3/python")
+library("rmarkdown", lib.loc="/Library/Frameworks/R.framework/Versions/3.5/Resources/library")
+py_module_available("pandas")
+```
+
+
+```{python, echo = FALSE, results = "hide"}
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+import numpy as np
+
+allData = pd.read_csv("/Users/austinmac/Downloads/JarSorting/Copy of tblCeramComb.csv")
+allData = allData[allData["Period"] == "LC"]
+rimDiameter = allData["RimDiameter"]
+group = allData["Group"]
+
+allData["JarGroups"] = str()
+allData["JarGroups"][allData["Group"] == "JG1"] = "JG1"
+allData["JarGroups"][allData["Group"] == "JG2"] = "JG2"
+allData["JarGroups"][allData["Group"] == "JG3"] = "JG3"
+allData["JarGroups"][allData["Group"] == "JG4"] = "JG4"
+allData["JarGroups"][allData["Group"] == "nan"] = "Other"
+```
+
+```{python, echo = FALSE}
+upperbound = 25
+lowerbound = 18
+allData["Width"] = str()
+allData["Width"][allData["RimDiameter"] <= lowerbound] = "narrow"
+allData["Width"][allData["RimDiameter"] >= upperbound] = "wide"
+```
+
+```{python, echo = FALSE}
+allData["Width"][(lowerbound < allData["RimDiameter"]) & (upperbound > allData["RimDiameter"]) & (allData["Group"] == "JG1")] = "narrow"
+allData["Width"][(lowerbound < allData["RimDiameter"]) & (upperbound > allData["RimDiameter"]) & (allData["Group"] == "JG2")] = "wide"
+allData["Width"][(lowerbound < allData["RimDiameter"]) & (upperbound > allData["RimDiameter"]) & (allData["Group"] == "JG3")] = "wide"
+allData["Width"][(lowerbound < allData["RimDiameter"]) & (upperbound > allData["RimDiameter"]) & (allData["Group"] == "JG4")] = "wide"
+```
+
+<center>
+
+### Histograms of Rim Diameter vs. Late Classic Jar Groups
+
+</center>
+```{python, echo = FALSE, results = "hide"}
+sns.catplot(data = allData, x = "JarGroups", y ="RimDiameter", hue = "Width", palette = sns.color_palette("coolwarm", 3), order = ["JG1", "JG2", "JG3", "JG4"])
+sns.boxplot(data = allData, x = "JarGroups", y ="RimDiameter", color = "white", order = ["JG1", "JG2", "JG3", "JG4"])
+```
+
+```{python, echo = FALSE, comment = ""}
+narrows = allData[allData.Width == "narrow"]
+wides = allData[allData.Width == "wide"]
+
+narrowmean = narrows["RimDiameter"].mean()
+narrowmedian = narrows["RimDiameter"].median()
+narrowstd = narrows["RimDiameter"].std()
+
+widemean = wides["RimDiameter"].mean()
+widemedian = wides["RimDiameter"].median()
+widestd =wides["RimDiameter"].std()
+
+statistics = pd.DataFrame(np.array([["narrow", round(narrowmean, 1), narrowmedian, round(narrowstd, 1)], ["wide", round(widemean, 1), widemedian, round(widestd, 1)]]), columns = ["Width", "Mean", "Median", "St. Dev."])
+print(statistics)
+```
